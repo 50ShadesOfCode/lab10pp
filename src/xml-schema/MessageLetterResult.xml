@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xs:schema version="1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:element name="messageLetterResult" type="messageLetterResult"/>
+
+  <xs:complexType name="messageLetterResult">
+    <xs:complexContent>
+      <xs:extension base="messageResult">
+        <xs:sequence>
+          <xs:element name="data" type="data" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="messageResult" abstract="true">
+    <xs:complexContent>
+      <xs:extension base="messageXml">
+        <xs:sequence/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="messageXml" abstract="true">
+    <xs:sequence/>
+  </xs:complexType>
+
+  <xs:complexType name="data">
+    <xs:sequence/>
+    <xs:attribute name="errorCode" type="xs:int" use="required"/>
+    <xs:attribute name="errorMessage" type="xs:string"/>
+    <xs:attribute name="id" type="xs:byte" use="required"/>
+  </xs:complexType>
+</xs:schema>
+

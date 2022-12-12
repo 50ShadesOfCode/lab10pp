@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!ELEMENT messageContextResult (data)>
+<!ELEMENT data EMPTY>
+<!ATTLIST data 
+	ID (1|2|3|4|5|6) #REQUIRED
+	errorCode (-1|0) #REQUIRED
+	errorMessage CDATA #IMPLIED>

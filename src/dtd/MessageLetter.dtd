@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!ELEMENT messageLetter (usrNic,txt,data)>
+<!ELEMENT usrNic (#PCDATA)>
+<!ELEMENT txt (#PCDATA)>
+<!ELEMENT data EMPTY>
+<!ATTLIST data 
+	ID (1|2|3|4|5|6) #REQUIRED>
