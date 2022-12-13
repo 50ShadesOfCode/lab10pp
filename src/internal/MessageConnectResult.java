@@ -8,7 +8,7 @@ import java.io.Serializable;
  * @author Sergey Gutnikov
  * @version 1.0
  */
-@XmlRootElement
+@XmlRootElement(name="messageConnectResult")
 public class MessageConnectResult extends MessageResult implements Serializable {
 	
 	private static final long serialVersionUID = 1L;

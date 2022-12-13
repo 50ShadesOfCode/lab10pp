@@ -2,9 +2,8 @@ package server;
 
 import internal.*;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import javax.xml.bind.JAXBException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -19,6 +18,7 @@ public class ServerMain {
     public static void main(String[] args) {
 
         try (ServerSocket serv = new ServerSocket(Protocol.PORT)) {
+            serv.setSoTimeout(5000000);
             System.err.println("initialized");
             ServerStopThread tester = new ServerStopThread();
             tester.start();
@@ -50,7 +50,7 @@ public class ServerMain {
     public static Socket accept(ServerSocket serv) {
         assert (serv != null);
         try {
-            serv.setSoTimeout(1000);
+            serv.setSoTimeout(5000000);
             return serv.accept();
         } catch (IOException ignored) {
         }
@@ -164,8 +164,8 @@ class ServerStopThread extends CommandThread {
 class ServerThread extends Thread {
 
     private final Socket sock;
-    private final ObjectOutputStream os;
-    private final ObjectInputStream is;
+    private final DataOutputStream os;
+    private final DataInputStream is;
     private final InetAddress addr;
 
     private String userNic = null;
@@ -238,8 +238,8 @@ class ServerThread extends Thread {
     public ServerThread(Socket s) throws IOException {
         sock = s;
         s.setSoTimeout(1000);
-        os = new ObjectOutputStream(s.getOutputStream());
-        is = new ObjectInputStream(s.getInputStream());
+        os = new DataOutputStream(s.getOutputStream());
+        is = new DataInputStream(s.getInputStream());
         addr = s.getInetAddress();
         this.setDaemon(true);
     }
@@ -249,8 +249,10 @@ class ServerThread extends Thread {
             while (true) {
                 Message msg = null;
                 try {
-                    msg = (Message) is.readObject();
+                    msg = MessageXml.getMessage(is, os);
                 } catch (IOException | ClassNotFoundException ignored) {
+                } catch (JAXBException e) {
+                    throw new RuntimeException(e);
                 }
                 if (msg != null && msg.getID() != Protocol.CMD_CONNECT){
                     if (!XmlValidator.validate(msg)){
@@ -288,78 +290,78 @@ class ServerThread extends Thread {
                         break;
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | JAXBException e) {
             System.err.print("Disconnect...");
         } finally {
             disconnect();
         }
     }
 
-    boolean connect(MessageConnect msg) throws IOException {
+    boolean connect(MessageConnect msg) throws IOException, JAXBException {
 
         ServerThread old = register(msg.userNic, msg.userFullName);
         if (old == null) {
-            os.writeObject(new MessageConnectResult());
+            MessageXml.toXml(new MessageConnectResult(), os);
             return true;
         } else {
-            os.writeObject(new MessageConnectResult(
-                    "User " + old.userFullName + " already connected as " + userNic));
+            MessageXml.toXml(new MessageConnectResult(
+                    "User " + old.userFullName + " already connected as " + userNic), os);
             return false;
         }
     }
 
-    void image(MessageFile msg) throws IOException {
+    void image(MessageFile msg) throws IOException, JAXBException {
         ServerThread user = ServerMain.getUser(msg.usrNic);
         if (user == null) {
-            os.writeObject(new MessageFileResult(
-                    "User " + msg.usrNic + " is not found"));
+            MessageXml.toXml(new MessageFileResult(
+                    "User " + msg.usrNic + " is not found"), os);
         } else {
             if (user.addFile(msg.file) == 1) {
-                os.writeObject(new MessageFileResult("Overloaded"));
+                MessageXml.toXml(new MessageFileResult("Overloaded"), os);
             } else
-                os.writeObject(new MessageFileResult());
+                MessageXml.toXml(new MessageFileResult(), os);
         }
     }
 
-    void letter(MessageLetter msg) throws IOException {
+    void letter(MessageLetter msg) throws IOException, JAXBException {
 
         ServerThread user = ServerMain.getUser(msg.usrNic);
         if (user == null) {
-            os.writeObject(new MessageLetterResult(
-                    "User " + msg.usrNic + " is not found"));
+            MessageXml.toXml(new MessageLetterResult(
+                    "User " + msg.usrNic + " is not found"), os);
         } else {
             if (user.addLetter(userNic + ": " + msg.txt) == 1) {
-                os.writeObject(new MessageLetterResult("Overloaded"));
+                MessageXml.toXml(new MessageLetterResult("Overloaded"), os);
             }
             else
-                os.writeObject(new MessageLetterResult());
+                MessageXml.toXml(new MessageLetterResult(), os);
         }
     }
 
-    void user(MessageUser msg) throws IOException {
+    void user(MessageUser msg) throws IOException, JAXBException {
 
         String[] nics = ServerMain.getUsers();
         if (nics.length > 0)
-            os.writeObject(new MessageUserResult(nics));
+            MessageXml.toXml(new MessageUserResult(nics), os);
         else
-            os.writeObject(new MessageUserResult("Unable to get users list"));
+            MessageXml.toXml(new MessageUserResult("Unable to get users list"), os);
     }
 
-    void checkMail(MessageCheckMail msg) throws IOException {
+    void checkMail(MessageCheckMail msg) throws IOException, JAXBException {
 
         String[] lts = getLetters();
         if (lts != null)
-            os.writeObject(new MessageCheckMailResult(lts));
+            MessageXml.toXml(new MessageCheckMailResult(lts), os);
         else
-            os.writeObject(new MessageCheckMailResult("Unable to get mail"));
+            MessageXml.toXml(new MessageCheckMailResult("Unable to get mail"), os);
     }
 
-    void checkFiles(MessageCheckFiles msg) throws IOException {
+    void checkFiles(MessageCheckFiles msg) throws IOException, JAXBException {
         CustomFile[] lts = getFiles();
         if (lts.length > 0)
-            os.writeObject(new MessageCheckFilesResult(lts));
+            MessageXml.toXml(new MessageCheckFilesResult(lts), os);
         else
-            os.writeObject(new MessageCheckFilesResult("Unable to get files"));
+            MessageXml.toXml(new MessageCheckFilesResult("Unable to get files"), os);
 
     }
 

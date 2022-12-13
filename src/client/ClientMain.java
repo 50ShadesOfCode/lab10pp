@@ -2,6 +2,7 @@ package client;
 
 import internal.*;
 
+import javax.xml.bind.JAXBException;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -49,16 +50,14 @@ public class ClientMain {
 
     static void session(Socket s, String nic, String name) {
         try (Scanner in = new Scanner(System.in);
-             ObjectInputStream is = new ObjectInputStream(s.getInputStream());
-             ObjectOutputStream os = new ObjectOutputStream(s.getOutputStream())) {
+             DataInputStream is = new DataInputStream(s.getInputStream());
+             DataOutputStream os = new DataOutputStream(s.getOutputStream())) {
             Session ses = new Session(nic, name);
             if (openSession(ses, is, os, in)) {
                 try {
                     while (true) {
                         Message msg = getCommand(in);
-                        if (!processCommand(msg, is, os)) {
-                            break;
-                        }
+                        MessageXml.query(msg, is, os, MessageXml.classResultById(msg.getID()));
                     }
                 } finally {
                     closeSession(ses, os);
@@ -69,10 +68,10 @@ public class ClientMain {
         }
     }
 
-    static boolean openSession(Session ses, ObjectInputStream is, ObjectOutputStream os, Scanner in)
-            throws IOException, ClassNotFoundException {
-        os.writeObject(new MessageConnect(ses.userNic, ses.userName));
-        MessageConnectResult msg = (MessageConnectResult) is.readObject();
+    static boolean openSession(Session ses, DataInputStream is, DataOutputStream os, Scanner in)
+            throws JAXBException {
+        MessageXml.toXml(new MessageConnect(ses.userNic, ses.userName), os);
+        MessageConnectResult msg = (MessageConnectResult) MessageXml.fromXml(MessageConnectResult.class, is);
         if (!msg.Error()) {
             System.err.println("connected");
             ses.connected = true;
@@ -85,10 +84,10 @@ public class ClientMain {
         return false;
     }
 
-    static void closeSession(Session ses, ObjectOutputStream os) throws IOException {
+    static void closeSession(Session ses, DataOutputStream os) throws JAXBException {
         if (ses.connected) {
             ses.connected = false;
-            os.writeObject(new MessageDisconnect());
+            MessageXml.toXml(new MessageDisconnect(), os);
         }
     }
 

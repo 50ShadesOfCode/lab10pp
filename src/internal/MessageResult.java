@@ -1,6 +1,7 @@
 package internal;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 
 /**
@@ -8,6 +9,7 @@ import java.io.Serializable;
  * @author Sergey Gutnikov
  * @version 1.0
  */
+@XmlRootElement(name="messageResult")
 public abstract class MessageResult extends MessageXml implements Serializable {
 
     public static class Data implements Serializable {

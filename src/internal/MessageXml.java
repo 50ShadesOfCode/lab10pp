@@ -1,9 +1,7 @@
 package internal;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.*;
+import javax.xml.bind.annotation.XmlRootElement;
 import java.io.*;
 
 /**
@@ -31,7 +29,7 @@ public abstract class MessageXml implements Serializable {
 		JAXBContext context =
 				JAXBContext.newInstance(what);
 		Unmarshaller u = context.createUnmarshaller();
-		return ( MessageXml ) u.unmarshal( is );
+		return ((JAXBElement<MessageXml> ) u.unmarshal( is )).getValue();
 	}
 
 	public static void writeMsg(DataOutputStream os, MessageXml msg)
