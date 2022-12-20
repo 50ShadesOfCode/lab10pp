@@ -18,7 +18,7 @@ public class ServerMain {
     public static void main(String[] args) {
 
         try (ServerSocket serv = new ServerSocket(Protocol.PORT)) {
-            serv.setSoTimeout(5000000);
+            //serv.setSoTimeout(5000000);
             System.err.println("initialized");
             ServerStopThread tester = new ServerStopThread();
             tester.start();
@@ -50,7 +50,7 @@ public class ServerMain {
     public static Socket accept(ServerSocket serv) {
         assert (serv != null);
         try {
-            serv.setSoTimeout(5000000);
+            serv.setSoTimeout(5000);
             return serv.accept();
         } catch (IOException ignored) {
         }
@@ -249,22 +249,15 @@ class ServerThread extends Thread {
             while (true) {
                 Message msg = null;
                 try {
-                    msg = MessageXml.getMessage(is, os);
+                    msg = (Message) MessageXml.readMsg(is);
                 } catch (IOException | ClassNotFoundException ignored) {
                 } catch (JAXBException e) {
                     throw new RuntimeException(e);
-                }
-                if (msg != null && msg.getID() != Protocol.CMD_CONNECT){
-                    if (!XmlValidator.validate(msg)){
-                        continue;
-                    }
                 }
                 if (msg != null) switch (msg.getID()) {
 
                     case Protocol.CMD_CONNECT:
                         if (!connect((MessageConnect) msg))
-                            return;
-                        if (!XmlValidator.validateScema() && !XmlValidator.validateDtd())
                             return;
                         break;
 
@@ -301,11 +294,11 @@ class ServerThread extends Thread {
 
         ServerThread old = register(msg.userNic, msg.userFullName);
         if (old == null) {
-            MessageXml.toXml(new MessageConnectResult(), os);
+            MessageXml.writeMsg(os, new MessageConnectResult());
             return true;
         } else {
-            MessageXml.toXml(new MessageConnectResult(
-                    "User " + old.userFullName + " already connected as " + userNic), os);
+            MessageXml.writeMsg(os, new MessageConnectResult(
+                    "User " + old.userFullName + " already connected as " + userNic));
             return false;
         }
     }
@@ -313,13 +306,13 @@ class ServerThread extends Thread {
     void image(MessageFile msg) throws IOException, JAXBException {
         ServerThread user = ServerMain.getUser(msg.usrNic);
         if (user == null) {
-            MessageXml.toXml(new MessageFileResult(
-                    "User " + msg.usrNic + " is not found"), os);
+            MessageXml.writeMsg(os, new MessageFileResult(
+                    "User " + msg.usrNic + " is not found"));
         } else {
             if (user.addFile(msg.file) == 1) {
-                MessageXml.toXml(new MessageFileResult("Overloaded"), os);
+                MessageXml.writeMsg(os, new MessageFileResult("Overloaded"));
             } else
-                MessageXml.toXml(new MessageFileResult(), os);
+                MessageXml.writeMsg(os, new MessageFileResult());
         }
     }
 

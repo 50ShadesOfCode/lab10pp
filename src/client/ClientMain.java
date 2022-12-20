@@ -6,6 +6,7 @@ import javax.xml.bind.JAXBException;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.Scanner;
 import java.util.TreeMap;
 
@@ -53,7 +54,8 @@ public class ClientMain {
              DataInputStream is = new DataInputStream(s.getInputStream());
              DataOutputStream os = new DataOutputStream(s.getOutputStream())) {
             Session ses = new Session(nic, name);
-            if (openSession(ses, is, os, in)) {
+            boolean oss = openSession(ses, is, os, in);
+            if (oss) {
                 try {
                     while (true) {
                         Message msg = getCommand(in);
@@ -64,14 +66,22 @@ public class ClientMain {
                 }
             }
         } catch (Exception e) {
-            System.err.println(e.getMessage());
+            System.err.println(Arrays.toString(e.getStackTrace()));
         }
     }
 
     static boolean openSession(Session ses, DataInputStream is, DataOutputStream os, Scanner in)
-            throws JAXBException {
-        MessageXml.toXml(new MessageConnect(ses.userNic, ses.userName), os);
-        MessageConnectResult msg = (MessageConnectResult) MessageXml.fromXml(MessageConnectResult.class, is);
+            throws JAXBException, IOException, ClassNotFoundException {
+        MessageXml.writeMsg(os, new MessageConnect(ses.userNic, ses.userName));
+
+        
+        MessageConnectResult msg = null;
+        try {
+            msg = (MessageConnectResult) MessageXml.readMsg(is);
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+        }
         if (!msg.Error()) {
             System.err.println("connected");
             ses.connected = true;
